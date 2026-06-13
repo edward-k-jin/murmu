@@ -25,6 +25,8 @@
 - [x] P0 모바일 UI 명세 작성
 - [x] Supabase API/RLS 계약 작성
 - [x] UI/백엔드 PM 통합 결정
+- [x] Supabase 로컬 프로젝트 초기화
+- [x] Auth/Profile/Pairing 초기 마이그레이션 작성
 - [ ] P0 사용자 흐름과 수용 기준 구체화
 
 ## Next
@@ -45,3 +47,4 @@
 ## Known Risks
 - `npm audit` moderate 11건은 Expo CLI의 `xcode -> uuid` 도구 체인 경로다.
 - `npm audit fix --force`는 Expo SDK 의존성을 하향하는 breaking change라 적용하지 않았다.
+- Docker가 없어 Supabase 로컬 Postgres와 `db lint`/RLS 통합 테스트를 아직 실행하지 못했다.

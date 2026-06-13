@@ -22,7 +22,7 @@ Auth/Profile/Pairing implementation slice
 - Supabase 로컬 개발 및 RLS 테스트 환경 준비
 
 ## Blocked
-- 없음
+- Supabase SQL 통합 검증은 Docker/로컬 Postgres 준비 전까지 대기. Frontend 계약 구현은 진행 가능.
 
 ## Next
 Frontend와 Backend가 Auth/Profile/Pairing 범위만 구현하고 QA가 핵심 흐름을 검증한다.

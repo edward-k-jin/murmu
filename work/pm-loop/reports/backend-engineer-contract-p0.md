@@ -26,9 +26,10 @@ API 계약을 먼저 승인하고 다음 세로 슬라이스에서 Supabase CLI,
 ## Handoff
 Frontend Engineer는 API 타입과 mock adapter로 Auth/Profile/Pairing 화면을 구성할 수 있다. Backend 구현 전 production Supabase 연결을 가정하지 않는다.
 
+초기 Auth/Profile/Pairing 마이그레이션을 작성했지만 `npx supabase db lint --local`은 `127.0.0.1:54322 connection refused`로 중단됐다. Docker/로컬 Postgres가 준비되면 적용 및 RLS 테스트를 반드시 재실행한다.
+
 ## Confidence
 High
 
 ## Next Suggested Agent
 Frontend Engineer and Backend Engineer implementation slice
-
