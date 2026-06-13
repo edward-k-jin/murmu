@@ -19,6 +19,12 @@
 - [x] lint, TypeScript, Expo Doctor 검증
 - [x] codex-agent-workflows PM Loop 적용
 - [x] 프로젝트 브리프, 에이전트 계획, 결정 로그 생성
+- [x] UX Flow와 화면 상태 모델 작성
+- [x] 기술 명세와 Supabase 권한 경계 작성
+- [x] UX/아키텍처 PM 통합 결정
+- [x] P0 모바일 UI 명세 작성
+- [x] Supabase API/RLS 계약 작성
+- [x] UI/백엔드 PM 통합 결정
 - [ ] P0 사용자 흐름과 수용 기준 구체화
 
 ## Next

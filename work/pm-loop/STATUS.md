@@ -1,7 +1,7 @@
 # PM Loop Status
 
 ## Current Stage
-Planning and contract definition
+Auth/Profile/Pairing implementation slice
 
 ## Completed
 - PRD 검토와 P0 범위 식별
@@ -10,13 +10,19 @@ Planning and contract definition
 - 프로젝트 초기 구조, 디자인 토큰, 첫 화면 생성
 - lint, typecheck, Expo Doctor 검증
 - PM Loop 프로젝트 브리프와 에이전트 계획 생성
+- UX Designer P0 흐름과 상태 모델
+- Tech Architect 데이터/API/RLS 경계
+- PM UX/아키텍처 통합 결정
+- UI Designer P0 모바일 화면/컴포넌트 명세
+- Backend Engineer API/RLS/인덱스 계약
+- PM UI/백엔드 계약 결정
 
 ## In Progress
-- UX Flow 작성 준비
-- Tech Spec과 Supabase 권한 경계 작성 준비
+- Frontend Auth/Profile/Pairing 세로 슬라이스 준비
+- Supabase 로컬 개발 및 RLS 테스트 환경 준비
 
 ## Blocked
 - 없음
 
 ## Next
-UX Designer와 Tech Architect 역할을 독립 산출물로 병렬 수행하고 PM 통합 결정을 작성한다.
+Frontend와 Backend가 Auth/Profile/Pairing 범위만 구현하고 QA가 핵심 흐름을 검증한다.
