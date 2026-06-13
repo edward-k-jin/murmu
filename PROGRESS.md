@@ -17,6 +17,8 @@
 - [x] Development Build와 앱 Provider 구조 설정
 - [x] 디자인 토큰 기반 첫 화면 구현
 - [x] lint, TypeScript, Expo Doctor 검증
+- [x] codex-agent-workflows PM Loop 적용
+- [x] 프로젝트 브리프, 에이전트 계획, 결정 로그 생성
 - [ ] P0 사용자 흐름과 수용 기준 구체화
 
 ## Next

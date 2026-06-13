@@ -1,5 +1,11 @@
 # Murmu Agent Workflow
 
+## Workflow Source
+- PM 운영은 `codex-agent-workflows`의 `pm-loop` 규칙을 따른다.
+- 긴 대화 기록 대신 `work/pm-loop/PROJECT_BRIEF.md`, 역할 보고서, 결정 로그를 인계 기준으로 사용한다.
+- 현재 단계에 필요한 역할 계약만 읽고 전체 에이전트 라이브러리를 한꺼번에 로드하지 않는다.
+- 재사용 가능한 워크플로우 메모리는 사용자 승인 없이 추가하지 않는다.
+
 ## Communication
 - 진행 상황과 답변은 친근한 반말의 한국어로 작성한다.
 - 사용자는 리더 에이전트와만 소통한다.
@@ -19,13 +25,14 @@
 - 상세 기준은 `DESIGN.md`를 단일 기준으로 사용한다.
 
 ## Required Order
-1. Planner: PRD, 범위, 수용 기준, 열린 결정 정리
-2. Designer + Backend: 파일 충돌이 없을 때 병렬 진행
-3. App: 디자인 토큰과 API 계약을 읽고 React Native 구현
-4. Copy: 사용자 문구 정리
-5. QA: 수용 기준, 회귀, 접근성, 실제 기기 동작 검증
-6. Security/Legal: 인증, RLS, 개인정보, 알림 내용 검토
-7. Release: 변경 기록과 배포 체크리스트 정리
+1. PM: 프로젝트 브리프, 에이전트 계획, 현재 상태 갱신
+2. UX + Tech Architect: 독립 파일에서 병렬 진행
+3. PM: 보고서를 검토하고 Proceed/Revise/Stop/Ask User 결정 기록
+4. UI + Backend: UX와 아키텍처 계약을 입력으로 상세 명세
+5. Frontend: 승인된 디자인과 API 계약으로 React Native 구현
+6. Copy + UI Detail: 문구와 시각 디테일 검토
+7. QA + Security + Accessibility: 재현 가능한 이슈 보고와 재검증
+8. Release: 변경 기록과 배포 체크리스트 정리
 
 ## File Ownership
 - Leader/Planner: `AGENTS.md`, `PROGRESS.md`, `docs/PRD.md`, `docs/OPS/**`
@@ -47,10 +54,20 @@
 
 ## Agent Handoff
 각 역할은 완료할 때 아래 내용을 남긴다.
-- 변경 파일 목록
-- 결정 이유와 남은 위험
-- 실행한 검증과 결과
-- 다음 역할이 읽어야 할 계약 또는 문서
+- `work/pm-loop/reports/`에 Role, Task, Inputs Used, Findings, Risks, Recommendation, Handoff, Confidence, Next Suggested Agent를 기록한다.
+- PM은 다음 역할 실행 전에 `work/pm-loop/decisions/`에 결정과 인계 범위를 기록한다.
+- 다음 역할은 `PROJECT_BRIEF.md`, 관련 결정 로그, 직접 필요한 산출물만 읽는다.
+
+## Defect Rework
+- Requirement Gap -> PRD/Product
+- UX Flow Issue -> UX
+- Visual/UI Issue -> UI 또는 Frontend
+- Frontend Bug -> Frontend
+- Backend Bug -> Backend
+- Security Issue -> Security와 담당 Engineer
+- Accessibility Issue -> Accessibility와 Frontend
+- Unknown/Cross-cutting -> Tech Architect
+- Critical/High 이슈가 수정 또는 명시적으로 수용되고 대상 재검증이 통과할 때까지 반복한다.
 
 ## Approval Gates
 - Gate 0: 계획과 기술 방향
@@ -60,4 +77,3 @@
 - Gate 4: 앱 구현
 - Gate 5: QA와 보안/컴플라이언스
 - Gate 6: 앱스토어 배포
-
