@@ -160,7 +160,7 @@ begin
 
   insert into public.profiles as p (user_id, nickname, birth_date, timezone)
   values (current_user_id, clean_nickname, p_birth_date, p_timezone)
-  on conflict (user_id) do update
+  on conflict on constraint profiles_pkey do update
     set nickname = excluded.nickname,
         birth_date = excluded.birth_date,
         timezone = excluded.timezone,
@@ -368,8 +368,8 @@ begin
 
   if (
     select count(*)
-    from public.couple_members
-    where couple_id = invite_row.couple_id and left_at is null
+    from public.couple_members cm
+    where cm.couple_id = invite_row.couple_id and cm.left_at is null
   ) <> 1 then
     raise exception using errcode = 'P0001', message = 'CONFLICT';
   end if;
