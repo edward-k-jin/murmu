@@ -7,9 +7,10 @@ type PrimaryButtonProps = {
   label: string;
   onPress: () => void;
   disabled?: boolean;
+  loading?: boolean;
 };
 
-export function PrimaryButton({ label, onPress, disabled = false }: PrimaryButtonProps) {
+export function PrimaryButton({ label, onPress, disabled = false, loading = false }: PrimaryButtonProps) {
   const handlePress = () => {
     void Haptics.selectionAsync();
     onPress();
@@ -18,14 +19,14 @@ export function PrimaryButton({ label, onPress, disabled = false }: PrimaryButto
   return (
     <Pressable
       accessibilityRole="button"
-      disabled={disabled}
+      disabled={disabled || loading}
       onPress={handlePress}
       style={({ pressed }) => [
         styles.button,
         pressed && styles.pressed,
-        disabled && styles.disabled,
+        (disabled || loading) && styles.disabled,
       ]}>
-      <Text style={styles.label}>{label}</Text>
+      <Text style={styles.label}>{loading ? '잠시만...' : label}</Text>
     </Pressable>
   );
 }

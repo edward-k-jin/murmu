@@ -8,6 +8,7 @@
     "scheme": "murmu",
     "userInterfaceStyle": "light",
     "ios": {
+      "bundleIdentifier": "com.murmu.app",
       "icon": "./assets/expo.icon"
     },
     "android": {

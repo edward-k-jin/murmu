@@ -1,161 +1,123 @@
-# Murmu P0 API Interface
+# Murmu P0 1:1 Space API Interface
 
 ## Contract Rules
-- 인증된 호출은 Supabase access token을 사용한다.
-- 사용자 식별자는 요청 본문을 신뢰하지 않고 `(select auth.uid())`로 결정한다.
-- 모든 mutation은 `{ data, error }` 형태로 매핑 가능한 단일 결과를 반환한다.
-- 오류는 사용자 문구가 아닌 안정적인 `code`를 반환한다.
-- 시간 값은 ISO 8601 UTC, 날짜 라벨은 `YYYY-MM-DD`, 시간대는 IANA 문자열이다.
-- 목록은 cursor pagination을 사용한다.
+- 사용자 ID는 항상 `auth.uid()`에서 결정한다.
+- 모든 1:1 공간 mutation은 현재 활성 멤버십과 역할을 서버에서 재검증한다.
+- 직접 테이블 mutation 권한은 제거하고 RPC를 사용한다.
+- 시간은 ISO 8601 UTC, 시간대는 IANA 문자열이다.
+- 목록은 `(created_at, id)` cursor pagination을 사용한다.
 
 ## Standard Error
 ```ts
 type DomainErrorCode =
   | 'UNAUTHENTICATED'
   | 'PROFILE_REQUIRED'
-  | 'ALREADY_PAIRED'
+  | 'GROUP_NOT_FOUND'
+  | 'NOT_GROUP_MEMBER'
+  | 'NOT_GROUP_ADMIN'
+  | 'GROUP_MEMBER_LIMIT_REACHED'
+  | 'ALREADY_GROUP_MEMBER'
+  | 'ADMIN_CANNOT_LEAVE_WITH_MEMBERS'
+  | 'CANNOT_REMOVE_ADMIN'
   | 'INVITE_INVALID'
   | 'INVITE_EXPIRED'
-  | 'INVITE_USED'
-  | 'INVITE_SELF'
-  | 'NOT_COUPLE_MEMBER'
-  | 'PAST_CONVERSATION_READ_ONLY'
-  | 'MONOLOGUE_NOT_REQUESTABLE'
-  | 'REQUEST_ALREADY_PENDING'
-  | 'MONOLOGUE_NOT_OPENED'
+  | 'INVITE_REVOKED'
+  | 'MONOLOGUE_NOT_EDITABLE'
+  | 'MONOLOGUE_NOT_PUBLISHED'
   | 'VALIDATION_FAILED'
   | 'CONFLICT';
-
-type DomainError = {
-  code: DomainErrorCode;
-  field?: string;
-};
 ```
 
 ## Profile
 
 ### `upsert_profile`
-Input:
+Input: `{ nickname: string; timezone: string }`
+
+Output: `{ userId: string; nickname: string; timezone: string }`
+
+Validation: nickname trimmed 1..20, allowed IANA timezone.
+
+## 1:1 Spaces
+
+### `create_group`
+Input: `{ name: string; clientRequestId: string }`
+
+Output: `{ id: string; name: string; role: 'admin'; activeMemberCount: 1; memberLimit: 2 }`
+
+The backend still exposes `group_*` RPC names for now, but the product policy is a 1:1 relationship space. Space creation and owner membership are atomic and idempotent by caller/request ID.
+
+### `list_my_groups`
+Returns active memberships only:
 ```ts
-{ nickname: string; birthDate?: string; timezone: string }
-```
-Output:
-```ts
-{ userId: string; nickname: string; birthDate: string | null; timezone: string }
-```
-
-Validation:
-- nickname trimmed length 1..20
-- timezone must resolve to an allowed IANA timezone
-
-## Pairing
-
-### `create_invite`
-Input: none
-
-Output:
-```ts
-{ code: string; deepLink: string; expiresAt: string }
+type MyGroupSummary = {
+  id: string;
+  name: string;
+  role: 'admin' | 'member';
+  activeMemberCount: number;
+  memberLimit: number;
+  unread: boolean;
+};
 ```
 
-Rules:
-- caller must be unpaired or the sole active member of a pending couple
-- previous active invite is revoked
-- raw code is returned once; database stores hash
-- default expiry: 24 hours
+### `get_group_members`
+Input: `{ groupId: string }`
 
-### `preview_invite`
+Returns active members with `{ userId, nickname, role, joinedAt, todayMood }`.
+
+## Invitations
+
+### `create_group_invite`
+Input: `{ groupId: string }`
+
+Output: `{ code: string; deepLink: string; expiresAt: string }`
+
+Only active admin. Issuing a new code may revoke the previous active invite.
+
+### `preview_group_invite`
 Input: `{ code: string }`
 
 Output:
 ```ts
 {
-  state: 'valid' | 'invalid' | 'expired' | 'used' | 'self' | 'already_paired';
-  inviter?: { nickname: string };
+  state: 'valid' | 'invalid' | 'expired' | 'revoked' | 'full' | 'already_joined';
+  group?: { name: string; adminNickname: string; activeMemberCount: number; memberLimit: number };
   expiresAt?: string;
 }
 ```
 
-### `accept_invite`
-Input: `{ code: string }`
+No record or member list beyond this preview is returned.
 
-Output:
-```ts
-{ coupleId: string; partner: { userId: string; nickname: string } }
-```
+### `accept_group_invite`
+Input: `{ code: string; clientRequestId: string }`
 
-Transaction:
-1. lock invite row
-2. lock both member identities in deterministic UUID order
-3. recheck invite and pairing state
-4. insert member and mark invite used
-5. commit before push/event work
+Output: `MyGroupSummary`
+
+Locks invite/space, rechecks expiry, revocation and count, then creates a new membership row. Concurrent joins cannot exceed `member_limit = 2`.
+
+## Membership Lifecycle
+
+### `leave_group`
+Input: `{ groupId: string }`
+
+Output: `{ groupId: string; status: 'left'; cancelledScheduledCount: number }`
+
+- admin with another active member is rejected
+- membership end and scheduled cancellation are atomic
+- caller loses access immediately after commit
+
+### `remove_group_member`
+Input: `{ groupId: string; targetUserId: string }`
+
+Output: `{ groupId: string; targetUserId: string; status: 'removed'; cancelledScheduledCount: number }`
+
+Only active admin; cannot target admin.
 
 ## Mood
 
-### `upsert_mood_checkin`
-Input:
-```ts
-{ localDate: string; timezone: string; moodCode: string }
-```
+### `upsert_group_mood`
+Input: `{ groupId: string; localDate: string; timezone: string; moodCode: string }`
 
-Output:
-```ts
-{ id: string; localDate: string; moodCode: string; updatedAt: string }
-```
-
-### `get_today_moods`
-Output:
-```ts
-{
-  me: MoodCheckin | null;
-  partner: MoodCheckin | null;
-}
-```
-
-Partner response excludes private note fields.
-
-## Conversation
-
-### `start_or_get_conversation_day`
-Input: `{ localDate: string; timezone: string }`
-
-Output:
-```ts
-{ id: string; labelDate: string; startedAt: string; writable: boolean }
-```
-
-Server verifies local date against the couple canonical timezone. The client value is not authoritative.
-
-### `send_conversation_message`
-Input:
-```ts
-{
-  conversationDayId: string;
-  clientRequestId: string;
-  body: string;
-  moodCode?: string;
-}
-```
-
-Output:
-```ts
-{
-  id: string;
-  senderId: string;
-  body: string;
-  moodCode: string | null;
-  createdAt: string;
-}
-```
-
-Rules:
-- body trimmed length 1..5000
-- request is idempotent by caller + clientRequestId
-- past date returns `PAST_CONVERSATION_READ_ONLY`
-
-### Conversation list query
-Cursor: `(created_at, id)` descending for history; messages ascending within a day.
+Output: `{ id: string; groupId: string; localDate: string; moodCode: string; updatedAt: string }`
 
 ## Monologues
 
@@ -163,153 +125,108 @@ Cursor: `(created_at, id)` descending for history; messages ascending within a d
 Input:
 ```ts
 {
+  groupId: string;
   clientRequestId: string;
   moodCode: string;
   body: string;
-  visibilityMode: 'on_request' | 'scheduled';
+  publishMode: 'immediate' | 'scheduled';
   scheduledFor?: string;
 }
 ```
 
-Output: AuthorMonologue
+Requires active membership; body 1..10000; scheduled time after server now.
 
-Rules:
-- body trimmed length 1..10000
-- scheduled mode requires exactly creation time + 72 hours in P0
-- unpaired caller creates author-only record with no couple assignment
+### `update_scheduled_monologue`
+Input: `{ monologueId: string; moodCode: string; body: string; scheduledFor: string }`
 
-### `list_my_monologues`
-Returns full author records with cursor pagination.
+Only active author while status is `scheduled`.
 
-### `list_partner_monologues`
-Returns only:
-```ts
-type PartnerMonologueListItem = {
-  id: string;
-  authorNickname: string;
-  moodCode: string;
-  createdAt: string;
-  status: 'private' | 'request_pending' | 'scheduled' | 'opened' | 'deleted';
-  scheduledFor: string | null;
-  openedAt: string | null;
-};
-```
-
-The SQL read model must not include body or derived body metadata.
-
-### `request_monologue_access`
+### `cancel_scheduled_monologue`
 Input: `{ monologueId: string }`
-
-Output:
-```ts
-{ requestId: string; status: 'pending'; requestedAt: string }
-```
-
-### `cancel_monologue_request`
-Input: `{ requestId: string }`
 
 Output: `{ status: 'cancelled' }`
 
-### `resolve_monologue_request`
-Input:
-```ts
-{ requestId: string; action: 'approve' | 'defer' }
-```
+### `list_group_feed`
+Input: `{ groupId: string; beforeCreatedAt?: string; beforeId?: string; limit?: number }`
 
-Output:
-```ts
-{ status: 'approved' | 'deferred'; monologueStatus: 'opened' | 'private' }
-```
+Published items include body. Scheduled items include only id, author nickname, mood, createdAt, scheduledFor and locked status. Cancelled rows are omitted.
 
-Only the author can resolve. Approval atomically opens the monologue.
-
-### `get_opened_monologue`
+### `get_scheduled_monologue`
 Input: `{ monologueId: string }`
 
-Output:
+Only the active author can read the body of a scheduled monologue. Feed responses never reuse this author-only shape.
+
+### `get_published_monologue`
+Input: `{ groupId: string; monologueId: string }`
+
+Requires active membership and published status.
+
+## Thread
+
+### `send_thread_message`
+Input: `{ groupId: string; monologueId: string; clientRequestId: string; body: string }`
+
+Requires active membership and published monologue; body 1..5000.
+
+### `list_thread_messages`
+Input: `{ groupId: string; monologueId: string; afterCreatedAt?: string; afterId?: string; limit?: number }`
+
+Published messages remain visible when sender later leaves.
+
+## Push And Realtime
+- Events: `monologue.published`, `thread_message.created`, `mood.checked_in`, `membership.removed`
+- Payload contains `groupId`, `eventType` and opaque target ID only.
+- Authored body, body preview, body length and thread message text are never included.
+- Scheduled monologues do not emit recipient push events before publication.
+- Safe display copy examples: `새로 공개된 혼잣말이 있어요.`, `새 답장이 도착했어요.`
+- Recipient membership is rechecked at dispatch time.
+- `membership.removed` triggers local cache revocation for the affected user.
+
+### Notification Preferences
+Client-facing settings:
 ```ts
-{
-  id: string;
-  authorId: string;
-  authorNickname: string;
-  moodCode: string;
-  body: string;
-  createdAt: string;
-  openedAt: string;
-}
+type NotificationPreferences = {
+  enabled: boolean;
+  monologuePublished: boolean;
+  scheduledPublished: boolean;
+  threadReply: boolean;
+  spaceEvents: boolean;
+  moodReminder: boolean;
+};
 ```
 
-## Monologue Thread
+Preferences never override security events that revoke local access. The server still rechecks active membership before dispatching every push event.
 
-### `send_monologue_thread_message`
-Input:
-```ts
-{ monologueId: string; clientRequestId: string; body: string }
-```
-
-Output: ThreadMessage
-
-Rules:
-- monologue must be opened
-- caller must be active couple member
-- body length 1..5000
-
-## Push Devices
-
-### `register_push_device`
-Input:
-```ts
-{ expoPushToken: string; platform: 'ios' | 'android' }
-```
-
-Output: `{ registered: true }`
-
-Notification data payload:
-```ts
-{
-  eventType:
-    | 'message.created'
-    | 'mood.checked_in'
-    | 'monologue.created'
-    | 'monologue.access_requested'
-    | 'monologue.opened';
-  targetId: string;
-}
-```
-
-No user-authored body is included in notification title, body, or data payload.
-
-## RLS Policy Matrix
-| Resource | Author/User | Active Partner | Unrelated User |
+## RLS Matrix
+| Resource | Active Admin | Active Member | Departed/Unrelated |
 |---|---|---|---|
-| Profile full | read/write own | nickname only | none |
-| Couple membership | read own couple | read same couple | none |
-| Mood | full own | partner-safe fields | none |
-| Conversation | read/write current date | read/write current date | none |
-| Past conversation | read | read | none |
-| Monologue author view | full | none | none |
-| Partner monologue list | n/a | metadata only | none |
-| Opened monologue detail | full | full after opened | none |
-| Access request | author resolve | requester create/cancel/read | none |
-| Thread | read/write if opened | read/write if opened | none |
+| Group summary/member list | read | read | none |
+| Invite create/revoke | yes | no | no |
+| Member remove | yes | no | no |
+| Group leave | blocked with members | yes | no |
+| Published feed/history | read | read | none |
+| Scheduled metadata | read | read | none |
+| Scheduled body | own only | own only | none |
+| Published departed-author content | read | read | none |
 
 ## Index Requirements
-- every foreign key column indexed
-- partial unique active membership index on `couple_members(user_id) where left_at is null`
-- partial pending invite index on `(inviter_id, expires_at) where accepted_at is null and revoked_at is null`
-- conversation day unique `(couple_id, label_date)`
-- message pagination `(conversation_day_id, created_at, id)`
-- partner list `(couple_id, created_at desc, id desc) where deleted_at is null`
-- pending request unique `(monologue_id, requester_id) where status = 'pending'`
-- RLS membership lookups indexed by `(couple_id, user_id)`
+- all foreign keys indexed
+- active membership `(group_id, user_id) where status='active'`
+- user group list `(user_id, status, joined_at desc)`
+- one active admin `(group_id) where role='admin' and status='active'`
+- active invite `(group_id, expires_at) where revoked_at is null`
+- feed `(group_id, created_at desc, id desc) where status in ('scheduled','published')`
+- due publication `(scheduled_for, id) where status='scheduled'`
+- thread `(monologue_id, created_at, id)`
 
 ## Backend Verification Gate
-- SQL formatting/lint
-- migration applies from empty database
-- RLS positive tests for both couple members
-- RLS negative tests for unrelated third user
-- concurrent invite acceptance test
-- duplicate request ID test
-- partner list response snapshot proving body keys are absent
-- midnight and timezone contract tests
-
+- empty DB migration and schema lint
+- admin/member/unrelated RLS tests
+- cross-group ID substitution tests
+- concurrent sixth free-member acceptance test
+- admin leave rejection and member removal authorization
+- departed member immediately loses historical reads
+- new member reads pre-join published records
+- membership end atomically cancels scheduled content
+- scheduled feed response contains no body/length/preview keys
+- authenticated direct table mutations are denied

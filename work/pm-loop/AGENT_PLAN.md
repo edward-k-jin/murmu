@@ -1,41 +1,34 @@
 # Agent Plan
 
 ## Stage
-Planning and contract definition
+Group pivot UX and architecture redefinition
 
-## Agents To Use
+## Agents To Use Now
 - `ux-designer`
 - `tech-architect`
-- `ui-designer`
-- `backend-engineer`
-- `frontend-engineer`
-- `copywriter`
-- `ui-detail-reviewer`
-- `qa-engineer`
-- `security-reviewer`
-- `accessibility-reviewer`
-- `devops-release-engineer`
 
 ## Parallelizable Work
-- UX Designer -> `work/pm-loop/deliverables/UX_FLOW.md`
-- Tech Architect -> `work/pm-loop/deliverables/TECH_SPEC.md`
-- UX 결정 이후 UI Designer -> `work/pm-loop/deliverables/UI_SPEC.md`
-- 아키텍처 결정 이후 Backend Engineer -> `docs/api-interface.md`, `supabase/**`
-- 구현 완료 이후 Security와 Accessibility는 독립 보고서로 병렬 검토
+- UX Designer -> 다중 그룹 선택, 생성, 참여, 관리, 혼잣말 피드 흐름
+- Tech Architect -> groups, memberships, roles, invitations, RLS, 기록 가시성 계약
 
 ## Sequential Dependencies
-1. PROJECT_BRIEF 확정
-2. UX_FLOW와 TECH_SPEC 작성
-3. PM 통합 결정
-4. UI_SPEC와 API 계약 작성
-5. Frontend 구현
-6. UI Detail Review
-7. QA/Security/Accessibility 검증과 결함 수정 루프
-8. Release 검토
+1. 그룹 Product Brief 승인
+2. 멤버 변동 시 기록 접근 정책 결정 완료
+3. UX Flow와 Tech Spec 재작성
+4. PM Gate 2/3 통합 결정
+5. UI Spec과 API 계약 재작성
+6. Backend migration과 Frontend 구현
+7. QA/Security/Accessibility 검증
+
+## Superseded Artifacts
+- 기존 커플 기반 `UX_FLOW.md`
+- 기존 커플 기반 `TECH_SPEC.md`
+- 기존 커플 기반 `UI_SPEC.md`
+- 기존 `docs/api-interface.md`
+- 기존 couple/pairing migration은 새 그룹 migration 전략 확정 전 확장 금지
 
 ## Handoff Rules
-- 다음 역할에는 `PROJECT_BRIEF.md`, 관련 PM 결정 로그, 직접 필요한 deliverable만 제공한다.
-- 모든 역할은 `work/pm-loop/reports/`에 표준 형식 보고서를 남긴다.
-- 같은 파일을 병렬 역할이 수정하지 않는다.
-- 보고서의 추정과 미결정 사항을 확정 사실처럼 구현하지 않는다.
-- Critical/High 결함은 수정 후 담당 검토자가 재검증한다.
+- 새 역할은 `PROJECT_BRIEF.md`와 `0006-group-policy-baseline.md`를 기준으로 한다.
+- 커플 기반 산출물은 참고만 하고 승인된 계약으로 사용하지 않는다.
+- 모든 권한 시나리오는 사용자, 그룹, 멤버십 역할, 가입/탈퇴 시각을 포함한다.
+- RLS는 현재 활성 멤버십을 기준으로 전체 그룹 기록 접근을 허용하고, 멤버십 종료 즉시 모든 접근을 차단한다.
