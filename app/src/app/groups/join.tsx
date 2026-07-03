@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { PrimaryButton } from '@/components/primary-button';
 import { ScreenShell } from '@/components/screen-shell';
@@ -28,6 +28,7 @@ export default function JoinGroupScreen() {
   const [preview, setPreview] = useState<InvitePreview | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const goBack = () => router.replace('/groups');
 
   const checkCode = async () => {
     if (!code.trim()) return setError('초대코드를 입력해주세요.');
@@ -62,7 +63,11 @@ export default function JoinGroupScreen() {
     const title = valid ? preview.groupName : previewMessages[preview.state as Exclude<InvitePreview['state'], 'valid'>];
     return (
       <ScreenShell footer={valid ? <PrimaryButton label="이 공간에 참여하기" loading={loading} onPress={() => void join()} /> : <SecondaryButton label="다른 코드 입력하기" onPress={() => setPreview(null)} />}>
-        <View style={styles.header}><Text style={styles.eyebrow}>{valid ? '초대받은 1:1 공간' : '초대 확인'}</Text><Text style={styles.title}>{title}</Text></View>
+        <View style={styles.header}>
+          <BackButton onPress={goBack} />
+          <Text style={styles.eyebrow}>{valid ? '초대받은 1:1 공간' : '초대 확인'}</Text>
+          <Text style={styles.title}>{title}</Text>
+        </View>
         {valid ? <View style={styles.previewCard}><Text style={styles.admin}>{preview.adminNickname}님이 만든 공간</Text><Text style={styles.count}>{preview.activeMemberCount} / {preview.memberLimit}명</Text><View style={styles.divider} /><Text style={styles.notice}>참여하면 이 공간에서 이전에 공개된 혼잣말도 볼 수 있어요.</Text></View> : null}
       </ScreenShell>
     );
@@ -70,14 +75,29 @@ export default function JoinGroupScreen() {
 
   return (
     <ScreenShell footer={<PrimaryButton label="초대 확인하기" loading={loading} onPress={() => void checkCode()} />}>
-      <View style={styles.header}><Text style={styles.title}>초대코드를 입력해주세요.</Text><Text style={styles.body}>상대에게 받은 10자리 코드를 확인할게요.</Text></View>
+      <View style={styles.header}>
+        <BackButton onPress={goBack} />
+        <Text style={styles.title}>초대코드를 입력해주세요.</Text>
+        <Text style={styles.body}>상대에게 받은 10자리 코드를 확인할게요.</Text>
+      </View>
       <View style={styles.form}><TextField autoCapitalize="characters" autoCorrect={false} error={error} label="초대코드" maxLength={10} onChangeText={(value) => setCode(value.toUpperCase())} placeholder="예: A1B2C3D4E5" value={code} /></View>
     </ScreenShell>
   );
 }
 
+function BackButton({ onPress }: { onPress: () => void }) {
+  return (
+    <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.backButton, pressed && styles.backPressed]}>
+      <Text style={styles.backText}>‹ 돌아가기</Text>
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
   header: { marginTop: spacing.lg, gap: spacing.md },
+  backButton: { alignSelf: 'flex-start', minHeight: 36, justifyContent: 'center', paddingRight: spacing.md },
+  backPressed: { opacity: 0.55 },
+  backText: { ...typography.label, color: colors.primary },
   eyebrow: { ...typography.label, color: colors.primary },
   title: { ...typography.titleLarge, color: colors.ink },
   body: { ...typography.body, color: colors.body },
