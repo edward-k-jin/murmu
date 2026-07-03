@@ -1,6 +1,6 @@
 import { Redirect, useRouter } from 'expo-router';
-import { useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Animated, Easing, StyleSheet, Text, View } from 'react-native';
 
 import { PrimaryButton } from '@/components/primary-button';
 import { ScreenShell } from '@/components/screen-shell';
@@ -12,27 +12,21 @@ import { useGroups } from '@/providers/group-provider';
 const onboardingSteps = [
   {
     eyebrow: '말하기 어려운 마음도 괜찮아요',
-    title: `바로 말하지 못한 마음을${`\n`}먼저 혼잣말로 남겨요.`,
+    title: '말 못 한 마음도 괜찮아요',
     description:
-      '친구나 연인 사이에서 불편했던 마음, 전하고 싶지만 아직 준비되지 않은 이야기를 조용히 적어둘 수 있어요.',
-    cardTitle: '오늘 마음에 남은 이야기',
-    cardBody: '서운했던 말, 고마웠던 순간, 아직 꺼내기 어려운 마음을 나에게 말하듯 적어보세요.',
+      `친구나 연인에게 바로 말하기 어려운 마음을${`\n`}먼저 혼잣말로 안전하게 남겨보세요.`,
   },
   {
-    eyebrow: '상대에게 닿는 속도는 내가 정해요',
-    title: `혼잣말은 바로 공개하지${`\n`}않아도 돼요.`,
+    eyebrow: '상대에게 닿는 속도를 정해요',
+    title: '공개 속도는 직접 정해요',
     description:
-      '지금은 나만 볼 수 있게 두고, 마음이 정리되었을 때 상대에게 보여줄 수 있어요. 공개 전까지는 내 공간에만 안전하게 머물러요.',
-    cardTitle: '공개 전까지는 비공개',
-    cardBody: '예약한 혼잣말은 정한 시점 전까지 상대에게 본문이 보이지 않아요.',
+      `지금은 나만 보관하고, 마음이 정리되면${`\n`}정한 시간에 상대에게 보여줄 수 있어요.`,
   },
   {
     eyebrow: '우리 둘만의 대화를 시작해요',
-    title: `편하게 남기고,${`\n`}준비되면 전해보세요.`,
+    title: '이제 편하게 시작해요',
     description:
-      'Murmu는 감정을 숨기기보다 안전하게 표현하도록 돕는 1:1 공간이에요. 시작하려면 계정으로 로그인해주세요.',
-    cardTitle: '로그인하면 할 수 있어요',
-    cardBody: '1:1 공간을 만들거나 초대코드로 참여하고, 공개된 혼잣말에서 대화를 이어갈 수 있어요.',
+      `1:1 공간을 만들고 초대코드로 연결해요.${`\n`}로그인하면 둘만의 이야기를 시작할 수 있어요.`,
   },
 ];
 
@@ -83,9 +77,13 @@ export default function WelcomeScreen() {
   };
 
   const footer = step < onboardingSteps.length - 1 ? (
-    <PrimaryButton label="다음" onPress={() => setStep((nextStep) => nextStep + 1)} />
+    <View style={styles.footerActions}>
+      {step > 0 ? <SecondaryButton label="이전" onPress={() => setStep((nextStep) => nextStep - 1)} /> : null}
+      <PrimaryButton label="다음" onPress={() => setStep((nextStep) => nextStep + 1)} />
+    </View>
   ) : (
     <View style={styles.loginActions}>
+      <SecondaryButton label="이전" onPress={() => setStep((nextStep) => nextStep - 1)} />
       <SecondaryButton
         disabled={provider !== null}
         label={provider === 'apple' ? '잠시만요...' : 'Apple로 계속하기'}
@@ -111,21 +109,75 @@ export default function WelcomeScreen() {
         <Text style={styles.title}>{currentStep.title}</Text>
         <Text style={styles.description}>{currentStep.description}</Text>
       </View>
-      <View style={styles.preview}>
-        <Text style={styles.previewLabel}>{currentStep.cardTitle}</Text>
-        <Text style={styles.privateLabel}>{currentStep.cardBody}</Text>
-        <View style={styles.divider} />
-        <View style={styles.progressRow}>
-          {onboardingSteps.map((item, index) => (
-            <View
-              key={item.eyebrow}
-              style={[styles.progressDot, index === step && styles.progressDotActive]}
-            />
-          ))}
-        </View>
+      <AnimatedOnboardingSymbol step={step} />
+      <View style={styles.progressRow}>
+        {onboardingSteps.map((item, index) => (
+          <View
+            key={item.eyebrow}
+            style={[styles.progressDot, index === step && styles.progressDotActive]}
+          />
+        ))}
       </View>
       {error ? <Text style={styles.error}>{error}</Text> : null}
     </ScreenShell>
+  );
+}
+
+function AnimatedOnboardingSymbol({ step }: { step: number }) {
+  const [progress] = useState(() => new Animated.Value(0));
+
+  useEffect(() => {
+    progress.setValue(0);
+    const animation = Animated.loop(
+      Animated.timing(progress, {
+        duration: 2800,
+        easing: Easing.inOut(Easing.ease),
+        toValue: 1,
+        useNativeDriver: true,
+      }),
+    );
+    animation.start();
+    return () => animation.stop();
+  }, [progress, step]);
+
+  const breathe = progress.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0.96, 1.06, 0.96] });
+  const float = progress.interpolate({ inputRange: [0, 0.5, 1], outputRange: [6, -6, 6] });
+  const pulse = progress.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0.35, 0.85, 0.35] });
+  const rotate = progress.interpolate({ inputRange: [0, 1], outputRange: ['-4deg', '4deg'] });
+
+  return (
+    <View style={styles.symbolStage}>
+      <Animated.View
+        style={[
+          styles.symbolGlow,
+          step === 1 && styles.symbolGlowQuiet,
+          step === 2 && styles.symbolGlowWarm,
+          { opacity: pulse, transform: [{ scale: breathe }] },
+        ]}
+      />
+      {step === 0 ? (
+        <Animated.View style={[styles.symbolGroup, { transform: [{ translateY: float }] }]}>
+          <View style={styles.symbolBubbleLarge} />
+          <View style={styles.symbolBubbleSmall} />
+          <View style={styles.symbolDot} />
+        </Animated.View>
+      ) : step === 1 ? (
+        <Animated.View style={[styles.symbolGroup, { transform: [{ scale: breathe }] }]}>
+          <View style={styles.symbolLockTop} />
+          <View style={styles.symbolLockBody}>
+            <View style={styles.symbolLockDot} />
+          </View>
+          <View style={styles.symbolLine} />
+        </Animated.View>
+      ) : (
+        <Animated.View style={[styles.symbolGroup, { transform: [{ translateY: float }, { rotate }] }]}>
+          <View style={styles.symbolOrbit} />
+          <View style={styles.symbolHeartLeft} />
+          <View style={styles.symbolHeartRight} />
+          <View style={styles.symbolBridge} />
+        </Animated.View>
+      )}
+    </View>
   );
 }
 
@@ -141,13 +193,119 @@ const styles = StyleSheet.create({
   description: { ...typography.body, color: colors.body, maxWidth: 340 },
   configBox: { padding: spacing.base, gap: spacing.sm, borderRadius: radius.input, backgroundColor: colors.surfaceSoft },
   configKey: { fontFamily: 'monospace', fontSize: 12, lineHeight: 18, color: colors.body },
-  preview: { marginTop: spacing.xxl, padding: spacing.lg, borderRadius: radius.card, borderWidth: 1, borderColor: colors.hairline, backgroundColor: colors.surface, gap: spacing.md },
-  previewLabel: { ...typography.title, color: colors.ink },
-  divider: { height: 1, backgroundColor: colors.hairline },
-  privateLabel: { ...typography.caption, color: colors.muted },
-  progressRow: { flexDirection: 'row', gap: spacing.sm },
+  symbolStage: {
+    height: 190,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: spacing.xxl,
+  },
+  symbolGlow: {
+    position: 'absolute',
+    width: 150,
+    height: 150,
+    borderRadius: radius.full,
+    backgroundColor: colors.primarySoft,
+  },
+  symbolGlowQuiet: { backgroundColor: colors.surfaceSoft },
+  symbolGlowWarm: { backgroundColor: '#FFF2E9' },
+  symbolGroup: {
+    width: 128,
+    height: 128,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  symbolBubbleLarge: {
+    width: 88,
+    height: 62,
+    borderRadius: 28,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.hairline,
+  },
+  symbolBubbleSmall: {
+    position: 'absolute',
+    right: 20,
+    bottom: 28,
+    width: 34,
+    height: 24,
+    borderRadius: radius.full,
+    backgroundColor: colors.primary,
+  },
+  symbolDot: {
+    position: 'absolute',
+    left: 34,
+    top: 50,
+    width: 12,
+    height: 12,
+    borderRadius: radius.full,
+    backgroundColor: colors.primarySoft,
+  },
+  symbolLockTop: {
+    width: 48,
+    height: 42,
+    borderTopLeftRadius: 26,
+    borderTopRightRadius: 26,
+    borderWidth: 8,
+    borderBottomWidth: 0,
+    borderColor: colors.primary,
+  },
+  symbolLockBody: {
+    width: 78,
+    height: 58,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 22,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.hairline,
+  },
+  symbolLockDot: {
+    width: 10,
+    height: 10,
+    borderRadius: radius.full,
+    backgroundColor: colors.primary,
+  },
+  symbolLine: {
+    width: 96,
+    height: 4,
+    marginTop: spacing.md,
+    borderRadius: radius.full,
+    backgroundColor: colors.primarySoft,
+  },
+  symbolOrbit: {
+    position: 'absolute',
+    width: 118,
+    height: 82,
+    borderRadius: radius.full,
+    borderWidth: 1,
+    borderColor: colors.hairline,
+  },
+  symbolHeartLeft: {
+    position: 'absolute',
+    left: 20,
+    width: 42,
+    height: 42,
+    borderRadius: 18,
+    backgroundColor: colors.primarySoft,
+  },
+  symbolHeartRight: {
+    position: 'absolute',
+    right: 20,
+    width: 42,
+    height: 42,
+    borderRadius: 18,
+    backgroundColor: colors.primary,
+  },
+  symbolBridge: {
+    width: 54,
+    height: 5,
+    borderRadius: radius.full,
+    backgroundColor: colors.hairline,
+  },
+  progressRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.md },
   progressDot: { width: 8, height: 8, borderRadius: radius.full, backgroundColor: colors.hairline },
   progressDotActive: { width: 24, backgroundColor: colors.primary },
+  footerActions: { gap: spacing.md },
   loginActions: { gap: spacing.md },
   error: { ...typography.bodySmall, marginTop: spacing.md, color: colors.danger },
 });
