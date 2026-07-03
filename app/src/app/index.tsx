@@ -199,10 +199,10 @@ const styles = StyleSheet.create({
   configBox: { padding: spacing.base, gap: spacing.sm, borderRadius: radius.input, backgroundColor: colors.surfaceSoft },
   configKey: { fontFamily: 'monospace', fontSize: 12, lineHeight: 18, color: colors.body },
   symbolStage: {
-    height: 188,
+    height: 220,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: spacing.xl,
+    marginTop: spacing.xxxl,
   },
   symbolGlow: {
     position: 'absolute',
