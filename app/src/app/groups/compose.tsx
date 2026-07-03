@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { PrimaryButton } from '@/components/primary-button';
 import { ScreenShell } from '@/components/screen-shell';
@@ -146,12 +146,14 @@ type SchedulePickerSheetProps = {
   onConfirm: (date: Date) => void;
 };
 
-const hourOptions = Array.from({ length: 24 }, (_, hour) => hour);
-const minuteOptions = [0, 15, 30, 45];
-
 function SchedulePickerSheet({ initialDate, onClose, onConfirm }: SchedulePickerSheetProps) {
   const [selectedDate, setSelectedDate] = useState(initialDate);
-  const [dateOptions] = useState(() => createDateOptions(new Date()));
+  const [presetOptions] = useState(() => createSchedulePresets(new Date()));
+  const [customOpen, setCustomOpen] = useState(false);
+  const adjustSelectedDate = (unit: 'day' | 'hour' | 'minute', amount: number) => {
+    const now = new Date();
+    setSelectedDate((current) => clampScheduledDate(addTime(current, unit, amount), now));
+  };
 
   return (
     <Modal animationType="slide" onRequestClose={onClose} transparent visible>
@@ -169,57 +171,43 @@ function SchedulePickerSheet({ initialDate, onClose, onConfirm }: SchedulePicker
           </Pressable>
         </View>
 
-        <Text style={styles.sheetLabel}>날짜</Text>
-        <ScrollView contentContainerStyle={styles.optionRow} horizontal showsHorizontalScrollIndicator={false}>
-          {dateOptions.map((option) => {
-            const selected = isSameLocalDay(selectedDate, option.date);
+        <Text style={styles.sheetLabel}>빠른 선택</Text>
+        <View style={styles.presetList}>
+          {presetOptions.map((option) => {
+            const selected = isSameMinute(selectedDate, option.date);
             return (
               <Pressable
                 accessibilityRole="button"
                 accessibilityState={{ selected }}
                 key={option.value}
-                onPress={() => setSelectedDate(mergeDate(selectedDate, option.date))}
-                style={[styles.dateOption, selected && styles.optionSelected]}>
-                <Text style={[styles.optionTitle, selected && styles.optionTitleSelected]}>{option.label}</Text>
-                <Text style={[styles.optionBody, selected && styles.optionBodySelected]}>{option.body}</Text>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
-
-        <Text style={styles.sheetLabel}>시간</Text>
-        <ScrollView contentContainerStyle={styles.optionRow} horizontal showsHorizontalScrollIndicator={false}>
-          {hourOptions.map((hour) => {
-            const selected = selectedDate.getHours() === hour;
-            return (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityState={{ selected }}
-                key={hour}
-                onPress={() => setSelectedDate(setTimePart(selectedDate, hour, selectedDate.getMinutes()))}
-                style={[styles.timeOption, selected && styles.optionSelected]}>
-                <Text style={[styles.optionTitle, selected && styles.optionTitleSelected]}>{formatHour(hour)}</Text>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
-
-        <Text style={styles.sheetLabel}>분</Text>
-        <View style={styles.minuteRow}>
-          {minuteOptions.map((minute) => {
-            const selected = selectedDate.getMinutes() === minute;
-            return (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityState={{ selected }}
-                key={minute}
-                onPress={() => setSelectedDate(setTimePart(selectedDate, selectedDate.getHours(), minute))}
-                style={[styles.minuteOption, selected && styles.optionSelected]}>
-                <Text style={[styles.optionTitle, selected && styles.optionTitleSelected]}>{String(minute).padStart(2, '0')}분</Text>
+                onPress={() => setSelectedDate(option.date)}
+                style={[styles.presetOption, selected && styles.optionSelected]}>
+                <View>
+                  <Text style={[styles.optionTitle, selected && styles.optionTitleSelected]}>{option.label}</Text>
+                  <Text style={[styles.optionBody, selected && styles.optionBodySelected]}>{option.body}</Text>
+                </View>
+                <Text style={[styles.presetTime, selected && styles.optionTitleSelected]}>{formatShortTime(option.date)}</Text>
               </Pressable>
             );
           })}
         </View>
+
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ expanded: customOpen }}
+          onPress={() => setCustomOpen((open) => !open)}
+          style={styles.customToggle}>
+          <Text style={styles.customToggleText}>{customOpen ? '직접 조정 닫기' : '직접 조금 조정하기'}</Text>
+          <Text style={styles.customToggleIcon}>{customOpen ? '−' : '+'}</Text>
+        </Pressable>
+
+        {customOpen ? (
+          <View style={styles.customPanel}>
+            <AdjustmentRow label="날짜" leftLabel="- 하루" rightLabel="+ 하루" onLeft={() => adjustSelectedDate('day', -1)} onRight={() => adjustSelectedDate('day', 1)} />
+            <AdjustmentRow label="시간" leftLabel="- 1시간" rightLabel="+ 1시간" onLeft={() => adjustSelectedDate('hour', -1)} onRight={() => adjustSelectedDate('hour', 1)} />
+            <AdjustmentRow label="분" leftLabel="- 15분" rightLabel="+ 15분" onLeft={() => adjustSelectedDate('minute', -15)} onRight={() => adjustSelectedDate('minute', 15)} />
+          </View>
+        ) : null}
 
         <View style={styles.sheetSummary}>
           <Text style={styles.sheetSummaryLabel}>선택한 공개 시간</Text>
@@ -228,6 +216,30 @@ function SchedulePickerSheet({ initialDate, onClose, onConfirm }: SchedulePicker
         <PrimaryButton label="이 시간으로 정하기" onPress={() => onConfirm(selectedDate)} />
       </View>
     </Modal>
+  );
+}
+
+type AdjustmentRowProps = {
+  label: string;
+  leftLabel: string;
+  rightLabel: string;
+  onLeft: () => void;
+  onRight: () => void;
+};
+
+function AdjustmentRow({ label, leftLabel, rightLabel, onLeft, onRight }: AdjustmentRowProps) {
+  return (
+    <View style={styles.adjustmentRow}>
+      <Text style={styles.adjustmentLabel}>{label}</Text>
+      <View style={styles.adjustmentButtons}>
+        <Pressable accessibilityRole="button" onPress={onLeft} style={styles.adjustmentButton}>
+          <Text style={styles.adjustmentButtonText}>{leftLabel}</Text>
+        </Pressable>
+        <Pressable accessibilityRole="button" onPress={onRight} style={styles.adjustmentButton}>
+          <Text style={styles.adjustmentButtonText}>{rightLabel}</Text>
+        </Pressable>
+      </View>
+    </View>
   );
 }
 
@@ -259,50 +271,68 @@ function formatKoreanDateTime(date: Date) {
   }).format(date);
 }
 
-function createDateOptions(baseDate: Date) {
-  const formatter = new Intl.DateTimeFormat('ko-KR', { month: 'short', day: 'numeric' });
-  const weekdayFormatter = new Intl.DateTimeFormat('ko-KR', { weekday: 'short' });
-  return Array.from({ length: MAX_SCHEDULE_DAYS }, (_, index) => {
-    const date = startOfLocalDay(new Date(baseDate.getTime() + index * MS_PER_DAY));
-    return {
-      body: weekdayFormatter.format(date),
-      date,
-      label: index === 0 ? '오늘' : index === 1 ? '내일' : formatter.format(date),
-      value: formatDateKey(date),
-    };
-  });
+function createSchedulePresets(now: Date) {
+  const candidates = [
+    { label: '조금 뒤', body: '마음이 조금 가라앉은 뒤', date: roundUpToQuarter(new Date(now.getTime() + 2 * 60 * 60 * 1000)) },
+    { label: '오늘 저녁', body: '오늘 하루가 지난 뒤', date: setLocalTime(now, 20, 0) },
+    { label: '내일 아침', body: '새로 시작하는 시간에', date: setRelativeLocalTime(now, 1, 9, 0) },
+    { label: '내일 저녁', body: '조금 더 정리하고 나서', date: setRelativeLocalTime(now, 1, 20, 0) },
+    { label: '며칠 뒤 저녁', body: '충분히 숨 고른 다음', date: setRelativeLocalTime(now, 3, 20, 0) },
+  ];
+  return candidates
+    .map((preset) => ({ ...preset, date: ensureFuture(clampScheduledDate(preset.date, now), now) }))
+    .filter((preset, index, presets) => presets.findIndex((item) => isSameMinute(item.date, preset.date)) === index)
+    .map((preset) => ({ ...preset, value: `${preset.label}-${preset.date.getTime()}` }));
 }
 
-function mergeDate(timeSource: Date, dateSource: Date) {
-  return new Date(
-    dateSource.getFullYear(),
-    dateSource.getMonth(),
-    dateSource.getDate(),
-    timeSource.getHours(),
-    timeSource.getMinutes(),
-  );
-}
-
-function setTimePart(date: Date, hour: number, minute: number) {
+function setLocalTime(date: Date, hour: number, minute: number) {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate(), hour, minute);
 }
 
-function startOfLocalDay(date: Date) {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+function setRelativeLocalTime(date: Date, daysFromNow: number, hour: number, minute: number) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate() + daysFromNow, hour, minute);
 }
 
-function isSameLocalDay(a: Date, b: Date) {
-  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+function roundUpToQuarter(date: Date) {
+  const rounded = new Date(date);
+  const minutes = rounded.getMinutes();
+  const nextQuarter = Math.ceil(minutes / 15) * 15;
+  rounded.setMinutes(nextQuarter, 0, 0);
+  return rounded;
 }
 
-function formatDateKey(date: Date) {
-  return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+function ensureFuture(date: Date, now: Date) {
+  const minimum = roundUpToQuarter(new Date(now.getTime() + 15 * 60 * 1000));
+  return date.getTime() <= now.getTime() ? minimum : date;
 }
 
-function formatHour(hour: number) {
-  const suffix = hour < 12 ? '오전' : '오후';
-  const displayHour = hour % 12 || 12;
-  return `${suffix} ${displayHour}시`;
+function clampScheduledDate(date: Date, now: Date) {
+  const minimum = roundUpToQuarter(new Date(now.getTime() + 15 * 60 * 1000));
+  const maximum = new Date(now.getTime() + MAX_SCHEDULE_DAYS * MS_PER_DAY - 60 * 1000);
+  if (date.getTime() < minimum.getTime()) return minimum;
+  if (date.getTime() > maximum.getTime()) return maximum;
+  return date;
+}
+
+function addTime(date: Date, unit: 'day' | 'hour' | 'minute', amount: number) {
+  const next = new Date(date);
+  if (unit === 'day') next.setDate(next.getDate() + amount);
+  if (unit === 'hour') next.setHours(next.getHours() + amount);
+  if (unit === 'minute') next.setMinutes(next.getMinutes() + amount);
+  return next;
+}
+
+function isSameMinute(a: Date, b: Date) {
+  return Math.floor(a.getTime() / 60000) === Math.floor(b.getTime() / 60000);
+}
+
+function formatShortTime(date: Date) {
+  return new Intl.DateTimeFormat('ko-KR', {
+    month: 'numeric',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(date);
 }
 
 const styles = StyleSheet.create({
@@ -369,37 +399,55 @@ const styles = StyleSheet.create({
   closeButton: { minHeight: 40, justifyContent: 'center', paddingHorizontal: spacing.sm, borderRadius: radius.input },
   closeText: { ...typography.label, color: colors.muted },
   sheetLabel: { ...typography.label, color: colors.ink, marginTop: spacing.xl, marginBottom: spacing.sm },
-  optionRow: { gap: spacing.sm, paddingRight: spacing.xl },
-  dateOption: {
-    minWidth: 78,
+  presetList: { gap: spacing.sm },
+  presetOption: {
+    minHeight: 64,
+    flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: radius.full,
+    justifyContent: 'space-between',
+    gap: spacing.md,
+    paddingHorizontal: spacing.base,
+    paddingVertical: spacing.md,
+    borderRadius: radius.card,
     borderWidth: 1,
     borderColor: colors.hairline,
     backgroundColor: colors.surface,
   },
-  timeOption: {
-    minWidth: 86,
+  presetTime: { ...typography.caption, color: colors.muted },
+  customToggle: {
+    minHeight: 48,
+    flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: radius.full,
+    justifyContent: 'space-between',
+    marginTop: spacing.md,
+    paddingHorizontal: spacing.base,
+    borderRadius: radius.input,
+    backgroundColor: colors.surfaceSoft,
+  },
+  customToggleText: { ...typography.label, color: colors.ink },
+  customToggleIcon: { fontSize: 20, color: colors.primary },
+  customPanel: {
+    marginTop: spacing.sm,
+    padding: spacing.base,
+    borderRadius: radius.card,
     borderWidth: 1,
     borderColor: colors.hairline,
     backgroundColor: colors.surface,
+    gap: spacing.md,
   },
-  minuteRow: { flexDirection: 'row', gap: spacing.sm },
-  minuteOption: {
+  adjustmentRow: { gap: spacing.sm },
+  adjustmentLabel: { ...typography.caption, color: colors.muted },
+  adjustmentButtons: { flexDirection: 'row', gap: spacing.sm },
+  adjustmentButton: {
     flex: 1,
     alignItems: 'center',
     paddingVertical: spacing.sm,
-    borderRadius: radius.full,
+    borderRadius: radius.input,
     borderWidth: 1,
     borderColor: colors.hairline,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.canvas,
   },
+  adjustmentButtonText: { ...typography.label, color: colors.ink },
   optionSelected: { borderColor: colors.primary, backgroundColor: colors.primarySoft },
   optionTitle: { ...typography.label, color: colors.ink },
   optionTitleSelected: { color: colors.primary },
