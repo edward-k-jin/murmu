@@ -11,10 +11,10 @@ import { useGroups } from '@/providers/group-provider';
 
 const onboardingSteps = [
   {
-    eyebrow: '말하기 어려운 마음도 괜찮아요',
-    title: '말 못 한 마음도 괜찮아요',
+    eyebrow: '오늘 무슨 일 있었나요?',
+    title: '직접 말하지 못했어도 괜찮아요',
     description:
-      `친구나 연인에게 바로 말하기 어려운 마음을${`\n`}먼저 혼잣말로 안전하게 남겨보세요.`,
+      `그게 누구든 말하기 어려웠던 마음을${`\n`}혼잣말로 안전하게 남겨보세요.`,
   },
   {
     eyebrow: '상대에게 닿는 속도를 정해요',
@@ -194,7 +194,7 @@ const styles = StyleSheet.create({
   loading: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   hero: { marginTop: spacing.xxl, gap: spacing.sm },
   eyebrow: { ...typography.label, color: colors.primary },
-  title: { ...typography.display, color: colors.ink },
+  title: { ...typography.display, color: colors.ink, fontSize: 26, lineHeight: 34 },
   description: { ...typography.body, color: colors.body, maxWidth: 340, marginTop: spacing.xs },
   configBox: { padding: spacing.base, gap: spacing.sm, borderRadius: radius.input, backgroundColor: colors.surfaceSoft },
   configKey: { fontFamily: 'monospace', fontSize: 12, lineHeight: 18, color: colors.body },
