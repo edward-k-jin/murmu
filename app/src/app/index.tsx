@@ -102,9 +102,7 @@ export default function WelcomeScreen() {
     <ScreenShell
       footer={footer}
       scroll={false}>
-      <View style={styles.brandRow}><View style={styles.brandMark} /><Text style={styles.brand}>Murmu</Text></View>
       <View style={styles.hero}>
-        <Text style={styles.stepText}>{step + 1}/3</Text>
         <Text style={styles.eyebrow}>{currentStep.eyebrow}</Text>
         <Text style={styles.title}>{currentStep.title}</Text>
         <Text style={styles.description}>{currentStep.description}</Text>
@@ -140,10 +138,16 @@ function AnimatedOnboardingSymbol({ step }: { step: number }) {
     return () => animation.stop();
   }, [progress, step]);
 
-  const breathe = progress.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0.96, 1.06, 0.96] });
-  const float = progress.interpolate({ inputRange: [0, 0.5, 1], outputRange: [6, -6, 6] });
+  const breathe = progress.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0.98, 1.04, 0.98] });
   const pulse = progress.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0.35, 0.85, 0.35] });
-  const rotate = progress.interpolate({ inputRange: [0, 1], outputRange: ['-4deg', '4deg'] });
+  const bubbleScale = progress.interpolate({ inputRange: [0, 0.45, 1], outputRange: [0.94, 1, 0.94] });
+  const bubbleDotShift = progress.interpolate({ inputRange: [0, 0.5, 1], outputRange: [-8, 8, -8] });
+  const lockTopTranslateX = progress.interpolate({ inputRange: [0, 0.45, 0.7, 1], outputRange: [-18, -18, 0, 0] });
+  const lockTopRotate = progress.interpolate({ inputRange: [0, 0.45, 0.7, 1], outputRange: ['-18deg', '-18deg', '0deg', '0deg'] });
+  const lockBodyScale = progress.interpolate({ inputRange: [0, 0.7, 0.82, 1], outputRange: [1, 1, 1.06, 1] });
+  const bridgeScale = progress.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0.55, 1, 0.55] });
+  const leftHeartShift = progress.interpolate({ inputRange: [0, 0.5, 1], outputRange: [-6, 0, -6] });
+  const rightHeartShift = progress.interpolate({ inputRange: [0, 0.5, 1], outputRange: [6, 0, 6] });
 
   return (
     <View style={styles.symbolStage}>
@@ -156,26 +160,31 @@ function AnimatedOnboardingSymbol({ step }: { step: number }) {
         ]}
       />
       {step === 0 ? (
-        <Animated.View style={[styles.symbolGroup, { transform: [{ translateY: float }] }]}>
-          <View style={styles.symbolBubbleLarge} />
-          <View style={styles.symbolBubbleSmall} />
-          <View style={styles.symbolDot} />
-        </Animated.View>
+        <View style={styles.symbolGroup}>
+          <Animated.View style={[styles.symbolBubbleLarge, { transform: [{ scale: bubbleScale }] }]} />
+          <Animated.View style={[styles.symbolBubbleSmall, { transform: [{ scale: breathe }] }]} />
+          <Animated.View style={[styles.symbolDot, { transform: [{ translateX: bubbleDotShift }] }]} />
+        </View>
       ) : step === 1 ? (
-        <Animated.View style={[styles.symbolGroup, { transform: [{ scale: breathe }] }]}>
-          <View style={styles.symbolLockTop} />
-          <View style={styles.symbolLockBody}>
+        <View style={styles.symbolGroup}>
+          <Animated.View
+            style={[
+              styles.symbolLockTop,
+              { transform: [{ translateX: lockTopTranslateX }, { rotate: lockTopRotate }] },
+            ]}
+          />
+          <Animated.View style={[styles.symbolLockBody, { transform: [{ scale: lockBodyScale }] }]}>
             <View style={styles.symbolLockDot} />
-          </View>
-          <View style={styles.symbolLine} />
-        </Animated.View>
+          </Animated.View>
+          <Animated.View style={[styles.symbolLine, { transform: [{ scaleX: bridgeScale }] }]} />
+        </View>
       ) : (
-        <Animated.View style={[styles.symbolGroup, { transform: [{ translateY: float }, { rotate }] }]}>
-          <View style={styles.symbolOrbit} />
-          <View style={styles.symbolHeartLeft} />
-          <View style={styles.symbolHeartRight} />
-          <View style={styles.symbolBridge} />
-        </Animated.View>
+        <View style={styles.symbolGroup}>
+          <Animated.View style={[styles.symbolOrbit, { transform: [{ scale: breathe }] }]} />
+          <Animated.View style={[styles.symbolHeartLeft, { transform: [{ translateX: leftHeartShift }] }]} />
+          <Animated.View style={[styles.symbolHeartRight, { transform: [{ translateX: rightHeartShift }] }]} />
+          <Animated.View style={[styles.symbolBridge, { transform: [{ scaleX: bridgeScale }] }]} />
+        </View>
       )}
     </View>
   );
@@ -183,21 +192,17 @@ function AnimatedOnboardingSymbol({ step }: { step: number }) {
 
 const styles = StyleSheet.create({
   loading: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  brandRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  brandMark: { width: 12, height: 12, borderRadius: radius.full, backgroundColor: colors.primary },
-  brand: { ...typography.label, color: colors.ink },
-  hero: { marginTop: spacing.xxxl, gap: spacing.md },
-  stepText: { ...typography.caption, color: colors.muted },
+  hero: { marginTop: spacing.xxl, gap: spacing.sm },
   eyebrow: { ...typography.label, color: colors.primary },
   title: { ...typography.display, color: colors.ink },
-  description: { ...typography.body, color: colors.body, maxWidth: 340 },
+  description: { ...typography.body, color: colors.body, maxWidth: 340, marginTop: spacing.xs },
   configBox: { padding: spacing.base, gap: spacing.sm, borderRadius: radius.input, backgroundColor: colors.surfaceSoft },
   configKey: { fontFamily: 'monospace', fontSize: 12, lineHeight: 18, color: colors.body },
   symbolStage: {
-    height: 190,
+    height: 188,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: spacing.xxl,
+    marginTop: spacing.xl,
   },
   symbolGlow: {
     position: 'absolute',
@@ -302,7 +307,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.full,
     backgroundColor: colors.hairline,
   },
-  progressRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.md },
+  progressRow: { flexDirection: 'row', alignSelf: 'center', gap: spacing.sm, marginTop: spacing.xs },
   progressDot: { width: 8, height: 8, borderRadius: radius.full, backgroundColor: colors.hairline },
   progressDotActive: { width: 24, backgroundColor: colors.primary },
   footerActions: { gap: spacing.md },
