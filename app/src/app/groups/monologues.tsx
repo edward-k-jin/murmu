@@ -3,7 +3,6 @@ import { useRouter } from 'expo-router';
 import type { ReactNode } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { BottomNav } from '@/components/bottom-nav';
 import { GroupSwitcher } from '@/components/group-switcher';
 import { ScreenShell } from '@/components/screen-shell';
 import { colors, radius, spacing, typography } from '@/design/tokens';
@@ -115,7 +114,7 @@ export default function MonologuesScreen() {
 }
 
 function ScreenShellWithBottomNav({ children }: { children: ReactNode }) {
-  return <ScreenShell footer={<BottomNav />}>{children}</ScreenShell>;
+  return <ScreenShell>{children}</ScreenShell>;
 }
 
 function ScreenShellWithLoading() {

@@ -51,6 +51,8 @@ Gate 1/4 rework in progress: product policy reverted from max-5 group to 1:1 rel
 - 서버 `member_limit` 기본값과 제약을 2명 고정으로 변경
 - 그룹 정원 테스트를 세 번째 가입 거부 기준으로 변경
 - 핵심 앱 문구를 1:1 공간/상대 기준으로 변경
+- 예약 공개 가능 기간을 최대 7일로 결정
+- 유료화 기준을 공간 확장과 월간 리포트 중심으로 결정
 
 ## In Progress
 - 기존 `group_*` 명명과 문서 산출물의 1:1 기준 정리

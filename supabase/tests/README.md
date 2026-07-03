@@ -16,4 +16,4 @@
 10. [x] 예약 피드 응답에 본문 없음
 11. [x] authenticated 직접 group 테이블 mutation 거부
 
-`group_foundation_rls.sql`은 공간 foundation 34개 assertion을, `mood_monologue_rls.sql`은 기분·혼잣말·스레드 40개 assertion을 검증한다. 현재 P0 합계는 74개다.
+`group_foundation_rls.sql`은 공간 foundation 34개 assertion을, `mood_monologue_rls.sql`은 기분·혼잣말·스레드 41개 assertion을 검증한다. 현재 P0 합계는 75개다.

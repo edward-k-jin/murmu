@@ -133,6 +133,20 @@ select is(
   'active author can read own scheduled body'
 );
 
+select throws_ok(
+  $$select * from public.create_monologue(
+    (select group_id from mood_group),
+    '32000000-0000-0000-0000-000000000099',
+    'calm',
+    '예약 가능 기간을 넘긴 본문.',
+    'scheduled',
+    now() + interval '8 days'
+  )$$,
+  'P0001',
+  'VALIDATION_FAILED',
+  'scheduled monologue cannot be more than 7 days out'
+);
+
 select set_config('request.jwt.claim.sub', '30000000-0000-0000-0000-000000000002', true);
 select throws_ok(
   format('select * from public.get_scheduled_monologue(%L)', (select monologue_id from scheduled_monologue)),

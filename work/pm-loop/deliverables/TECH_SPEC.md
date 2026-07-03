@@ -55,6 +55,7 @@
 - `publish_mode check in ('immediate','scheduled')`
 - `status check in ('scheduled','published','cancelled','deleted')`
 - `scheduled_for`, `published_at`, `cancelled_at`, timestamps
+- scheduled `scheduled_for` must be later than server `now()` and no more than 7 days after server `now()`
 - `cancel_reason check in ('author_cancelled','membership_ended')`
 - unique `(author_id, client_request_id)`
 

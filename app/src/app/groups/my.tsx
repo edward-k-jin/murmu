@@ -1,7 +1,6 @@
 import { type Href, useRouter } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { BottomNav } from '@/components/bottom-nav';
 import { ScreenShell } from '@/components/screen-shell';
 import { SecondaryButton } from '@/components/secondary-button';
 import { colors, radius, spacing, typography } from '@/design/tokens';
@@ -14,7 +13,7 @@ export default function MyScreen() {
   const { groups } = useGroups();
 
   return (
-    <ScreenShell footer={<BottomNav />}>
+    <ScreenShell>
       <View style={styles.header}>
         <Text style={styles.eyebrow}>나</Text>
         <Text style={styles.title}>내 설정</Text>

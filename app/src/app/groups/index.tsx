@@ -1,7 +1,6 @@
 import { type Href, useRouter } from 'expo-router';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { BottomNav } from '@/components/bottom-nav';
 import { PrimaryButton } from '@/components/primary-button';
 import { ScreenShell } from '@/components/screen-shell';
 import { SecondaryButton } from '@/components/secondary-button';
@@ -34,7 +33,7 @@ export default function SpacesScreen() {
   }
 
   return (
-    <ScreenShell footer={<BottomNav />}>
+    <ScreenShell>
       <View style={styles.header}>
         <Text style={styles.eyebrow}>공간</Text>
         <Text style={styles.title}>{groups.length === 1 ? '지금 연결된 1:1 공간이에요' : '내 1:1 공간들'}</Text>

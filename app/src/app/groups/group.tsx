@@ -1,7 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { BottomNav } from '@/components/bottom-nav';
 import { GroupSwitcher } from '@/components/group-switcher';
 import { ScreenShell } from '@/components/screen-shell';
 import { getMood, moods } from '@/constants/moods';
@@ -26,7 +25,7 @@ export default function GroupScreen() {
   });
 
   return (
-    <ScreenShell footer={<BottomNav />}>
+    <ScreenShell>
       <GroupSwitcher />
       <View style={styles.header}><Text style={styles.eyebrow}>오늘의 기분</Text><Text style={styles.title}>지금 마음은 어때?</Text></View>
       <View style={styles.moods}>

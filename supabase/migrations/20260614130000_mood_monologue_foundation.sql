@@ -196,7 +196,7 @@ begin
     or char_length(btrim(p_mood_code)) not between 1 and 32
     or char_length(clean_body) not between 1 and 10000
     or p_publish_mode is null
-    or (p_publish_mode = 'scheduled' and (p_scheduled_for is null or p_scheduled_for <= now()))
+    or (p_publish_mode = 'scheduled' and (p_scheduled_for is null or p_scheduled_for <= now() or p_scheduled_for > now() + interval '7 days'))
     or (p_publish_mode = 'immediate' and p_scheduled_for is not null) then
     raise exception using errcode = 'P0001', message = 'VALIDATION_FAILED';
   end if;
@@ -301,7 +301,8 @@ begin
   if char_length(btrim(p_mood_code)) not between 1 and 32
     or char_length(btrim(p_body)) not between 1 and 10000
     or p_scheduled_for is null
-    or p_scheduled_for <= now() then
+    or p_scheduled_for <= now()
+    or p_scheduled_for > now() + interval '7 days' then
     raise exception using errcode = 'P0001', message = 'VALIDATION_FAILED';
   end if;
 
